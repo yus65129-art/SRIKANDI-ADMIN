@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Konveksi Seragam</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .sidebar { transition: transform 0.3s ease-in-out; }
+        .backdrop { transition: opacity 0.3s ease-in-out; }
+        .hidden { display: none !important; }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .gemini-btn {
+            background: linear-gradient(to right, #4f46e5, #818cf8);
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Global Variables (provided by the environment) -->
+    <script>
+        var __app_id = typeof __app_id !== 'undefined' ? __app_id : 'konveksi-seragam-app';
+        var __firebase_config = typeof __firebase_config !== 'undefined' ? __firebase_config : '{}';
+        var __initial_auth_token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : undefined;
+    </script>
+
+    <div id="app-container">
+        <!-- Auth View (Login/Register) -->
+        <div id="auth-view" class="flex items-center justify-center min-h-screen bg-gray-200">
+            <div class="w-full max-w-sm p-8 space-y-6 bg-white rounded-lg shadow-md">
+                <div class="text-center">
+                    <i data-lucide="scissors" class="w-16 h-16 mx-auto text-indigo-600"></i>
+                    <h1 class="text-3xl font-bold text-gray-800">KonveksiApp</h1>
+                    <p id="auth-subtitle" class="text-gray-500">Masuk untuk mengelola pesanan Anda</p>
+                </div>
+                <form id="auth-form" class="space-y-4">
+                    <div>
+                        <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" id="email" name="email" required autocomplete="email" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="password" name="password" required autocomplete="current-password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <button type="submit" id="auth-button" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Masuk
+                    </button>
+                    <p id="auth-error" class="text-sm text-center text-red-500 hidden"></p>
+                </form>
+                <div class="text-center">
+                    <a href="#" id="auth-toggle" class="text-sm text-indigo-600 hover:underline">Belum punya akun? Daftar di sini</a>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Admin Dashboard View -->
+        <div id="admin-view" class="relative min-h-screen md:flex hidden">
+            <!-- Sidebar (Menu Admin) -->
+            <div id="sidebar" class="sidebar bg-gray-800 text-white w-64 space-y-6 py-7 px-2 absolute inset-y-0 left-0 transform -translate-x-full md:relative md:translate-x-0 z-30 flex flex-col">
+                <div>
+                    <a href="#" class="text-white flex items-center space-x-2 px-4">
+                        <i data-lucide="scissors" class="w-8 h-8"></i>
+                        <span class="text-2xl font-extrabold">KonveksiApp</span>
+                    </a>
+                    <nav class="mt-6">
+                        <a href="#" data-view="form-view" class="nav-link block py-2.5 px-4 rounded transition duration-200 bg-gray-700">
+                            <i data-lucide="file-plus-2" class="inline-block w-5 h-5 mr-2"></i> Formulir Pesanan
+                        </a>
+                        <a href="#" data-view="data-view" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">
+                            <i data-lucide="database" class="inline-block w-5 h-5 mr-2"></i> Data Pesanan
+                        </a>
+                        <a href="#" data-view="rekap-view" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">
+                            <i data-lucide="pie-chart" class="inline-block w-5 h-5 mr-2"></i> Rekap Pesanan
+                        </a>
+                        <a href="#" data-view="pengaturan-view" class="nav-link block py-2.5 px-4 rounded transition duration-200 hover:bg-gray-700">
+                            <i data-lucide="settings" class="inline-block w-5 h-5 mr-2"></i> Pengaturan
+                        </a>
+                    </nav>
+                </div>
+                <div class="mt-auto">
+                     <div class="px-4 py-2 border-t border-gray-700">
+                        <p class="text-xs text-gray-400">Anda masuk sebagai:</p>
+                        <p id="user-email-display" class="text-sm font-medium text-white truncate"></p>
+                    </div>
+                    <a href="#" id="logout-btn" class="block w-full text-left py-2.5 px-4 rounded transition duration-200 hover:bg-red-500 text-red-100">
+                        <i data-lucide="log-out" class="inline-block w-5 h-5 mr-2"></i> Keluar
+                    </a>
+                </div>
+            </div>
+
+            <!-- Backdrop -->
+            <div id="backdrop" class="backdrop fixed inset-0 bg-black bg-opacity-50 z-20 hidden md:hidden"></div>
+
+            <!-- Main Content -->
+            <div class="flex-1 flex flex-col overflow-hidden">
+                <header class="relative z-10 flex justify-between items-center p-4 bg-white border-b shadow-md">
+                    <button id="menu-btn" class="text-gray-500 focus:outline-none md:hidden">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                    <h1 id="header-title" class="text-xl font-semibold text-gray-700">Formulir Pesanan</h1>
+                    <div></div>
+                </header>
+                
+                <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4 md:p-6">
+                    <!-- Loader -->
+                    <div id="main-loader" class="flex justify-center items-center h-full">
+                        <div class="loader"></div>
+                    </div>
+
+                    <!-- Views Container -->
+                    <div id="views-container" class="hidden">
+                        <!-- 1. Formulir Pesanan View -->
+                        <div id="form-view" class="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-md">
+                            <form id="order-form" class="space-y-6">
+                                <div>
+                                    <label for="nama" class="block text-sm font-medium text-gray-700">Nama Pemesan</label>
+                                    <input type="text" id="nama" name="nama" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                </div>
+                                
+                                <div>
+                                    <label for="sekolah" class="block text-sm font-medium text-gray-700">Nama Sekolah</label>
+                                    <select id="sekolah" name="sekolah" required class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                        <option value="">Pilih Sekolah</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Jenis Kelamin</label>
+                                    <div class="mt-2 flex items-center space-x-4">
+                                        <label class="inline-flex items-center">
+                                            <input type="radio" name="jenisKelamin" value="Laki-laki" class="form-radio h-4 w-4 text-indigo-600" checked>
+                                            <span class="ml-2 text-gray-700">Laki-laki</span>
+                                        </label>
+                                        <label class="inline-flex items-center">
+                                            <input type="radio" name="jenisKelamin" value="Perempuan" class="form-radio h-4 w-4 text-indigo-600">
+                                            <span class="ml-2 text-gray-700">Perempuan</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label for="ukuran" class="block text-sm font-medium text-gray-700">Ukuran Seragam</label>
+                                    <select id="ukuran" name="ukuran" required class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                        <option value="S">S</option><option value="M">M</option><option value="L">L</option><option value="XL">XL</option><option value="XXL">XXL</option><option value="2L">2L</option><option value="3L">3L</option><option value="4L">4L</option><option value="5L">5L</option><option value="6L">6L</option><option value="7L">7L</option><option value="8L">8L</option><option value="9L">9L</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Jenis Seragam (Bisa pilih lebih dari satu)</label>
+                                    <div id="jenisSeragamContainer" class="mt-2 space-y-2 border border-gray-300 p-3 rounded-md bg-gray-50 max-h-48 overflow-y-auto">
+                                        <p class="text-gray-500 text-sm">Pilih sekolah terlebih dahulu</p>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Status Pembayaran</label>
+                                    <div class="mt-2 flex items-center space-x-4">
+                                        <label class="inline-flex items-center">
+                                            <input type="radio" name="statusPembayaran" value="Lunas" class="form-radio h-4 w-4 text-indigo-600" checked>
+                                            <span class="ml-2 text-gray-700">Lunas</span>
+                                        </label>
+                                        <label class="inline-flex items-center">
+                                            <input type="radio" name="statusPembayaran" value="DP" class="form-radio h-4 w-4 text-indigo-600">
+                                            <span class="ml-2 text-gray-700">DP</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div id="dp-field" class="hidden">
+                                    <label for="dp" class="block text-sm font-medium text-gray-700">Jumlah DP (Rp)</label>
+                                    <input type="number" id="dp" name="dp" placeholder="Contoh: 50000" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                </div>
+                                
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-lg font-semibold text-gray-800">Total Biaya:</span>
+                                        <span id="total-biaya" class="text-xl font-bold text-indigo-600">Rp 0</span>
+                                    </div>
+                                    <div id="sisa-pembayaran-container" class="flex justify-between items-center mt-2 hidden">
+                                        <span class="text-sm font-medium text-gray-600">Sisa Pembayaran:</span>
+                                        <span id="sisa-pembayaran" class="text-md font-semibold text-red-600">Rp 0</span>
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" id="submit-button" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                    Simpan Pesanan
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- 2. Data Pesanan View -->
+                        <div id="data-view" class="hidden">
+                            <div class="bg-white p-4 rounded-lg shadow-md">
+                                <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-4">
+                                    <h2 class="text-xl font-bold text-gray-800">Semua Data Pesanan</h2>
+                                    <input type="text" id="searchInput" class="mt-2 md:mt-0 w-full md:w-1/3 px-3 py-2 border border-gray-300 rounded-md" placeholder="Cari nama pemesan...">
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pemesan</th>
+                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Detail</th>
+                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pembayaran</th>
+                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="orders-table" class="bg-white divide-y divide-gray-200">
+                                            <!-- Data rows will be inserted here by JavaScript -->
+                                        </tbody>
+                                    </table>
+                                    <p id="no-data-message" class="text-center py-8 text-gray-500 hidden">Belum ada data pesanan.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Rekap Pesanan View -->
+                        <div id="rekap-view" class="hidden">
+                            <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                                 <h2 class="text-2xl font-bold text-gray-800 mb-4">Rekapitulasi Pesanan</h2>
+                                 <div id="rekap-content" class="space-y-6">
+                                     <!-- Rekap content will be inserted here -->
+                                 </div>
+                            </div>
+
+                             <div class="bg-white p-6 rounded-lg shadow-md">
+                                <div class="flex items-center justify-between mb-4">
+                                     <h2 class="text-2xl font-bold text-gray-800">✨ Analisis Cerdas Gemini</h2>
+                                     <button id="analyze-rekap-btn" class="gemini-btn text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-shadow flex items-center">
+                                        <i data-lucide="sparkles" class="w-5 h-5 mr-2"></i> Jalankan Analisis
+                                     </button>
+                                </div>
+                                 <div id="gemini-analysis-container" class="bg-gray-50 p-4 rounded-lg min-h-[10rem]">
+                                     <div id="gemini-loader" class="hidden justify-center items-center">
+                                        <div class="loader"></div>
+                                        <p class="ml-4 text-gray-600">Gemini sedang menganalisis data Anda...</p>
+                                     </div>
+                                     <div id="gemini-analysis-result">
+                                        <p class="text-gray-500 text-center">Klik "Jalankan Analisis" untuk mendapatkan wawasan bisnis dari data rekapitulasi Anda.</p>
+                                     </div>
+                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Pengaturan View -->
+                        <div id="pengaturan-view" class="hidden">
+                             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <!-- School Management -->
+                                <div class="bg-white p-6 rounded-lg shadow-md">
+                                    <h3 class="text-lg font-semibold mb-4">Kelola Sekolah</h3>
+                                    
+                                    <form id="find-school-form" class="flex space-x-2 mb-4">
+                                        <input type="text" id="school-search-query" placeholder="Cari sekolah (e.g., SMA di Bekasi)" class="flex-grow px-3 py-2 border border-gray-300 rounded-md" required>
+                                        <button type="submit" class="gemini-btn text-white px-4 py-2 rounded-md hover:opacity-90 flex items-center">
+                                            <i data-lucide="search" class="w-4 h-4 mr-1"></i> Cari
+                                        </button>
+                                    </form>
+                                    <div id="school-suggestions-container" class="mb-4">
+                                        <!-- School suggestions will appear here -->
+                                    </div>
+
+                                    <h4 class="text-md font-semibold border-t pt-4">Daftar Sekolah Anda</h4>
+                                    <div id="school-list" class="space-y-2 mt-2"></div>
+                                </div>
+
+                                <!-- Uniform Management -->
+                                <div class="bg-white p-6 rounded-lg shadow-md">
+                                    <h3 class="text-lg font-semibold mb-2">Kelola Seragam & Harga per Ukuran</h3>
+                                    <div class="mb-4">
+                                        <label for="pengaturan-sekolah-select" class="block text-sm font-medium text-gray-700">Pilih Sekolah</label>
+                                        <select id="pengaturan-sekolah-select" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"></select>
+                                    </div>
+                                    
+                                    <div id="uniform-list-container" class="space-y-4 mb-6">
+                                        <!-- Uniform list will be rendered here by JS -->
+                                    </div>
+                                
+                                    <div class="border-t pt-4">
+                                        <h4 class="text-md font-semibold mb-3">Tambah Seragam Baru</h4>
+                                        <form id="add-uniform-form" class="space-y-4">
+                                            <div>
+                                                <label for="new-uniform-name" class="block text-sm font-medium text-gray-700">Nama Seragam</label>
+                                                <input type="text" id="new-uniform-name" placeholder="Contoh: Seragam Batik" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md" required>
+                                            </div>
+                                            
+                                            <div id="size-price-inputs-container" class="space-y-2">
+                                                <!-- Size-price input rows will be added here -->
+                                            </div>
+                                
+                                            <button type="button" id="add-size-price-row" class="text-sm text-indigo-600 hover:text-indigo-800 flex items-center">
+                                                <i data-lucide="plus-circle" class="w-4 h-4 mr-1"></i> Tambah Ukuran & Harga
+                                            </button>
+                                            
+                                            <button type="submit" class="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 transition-colors">Simpan Seragam Baru</button>
+                                        </form>
+                                    </div>
+                                </div>
+                             </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for editing an order -->
+    <div id="edit-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-30">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Edit Data Pesanan</h3>
+                <form id="edit-order-form" class="space-y-4 text-left">
+                    <input type="hidden" id="edit-order-id">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Status Produksi</label>
+                        <select id="edit-status-produksi" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+                            <option value="Belum Selesai">Belum Selesai</option>
+                            <option value="Selesai">Selesai</option>
+                        </select>
+                    </div>
+                     <div>
+                        <label class="block text-sm font-medium text-gray-700">Tambah DP (Rp)</label>
+                        <input type="number" id="edit-tambah-dp" placeholder="Masukkan jumlah DP tambahan" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg mt-2">
+                        <p>Total DP Saat Ini: <span id="current-dp-info" class="font-semibold"></span></p>
+                        <p>Sisa Pembayaran: <span id="current-sisa-info" class="font-semibold"></span></p>
+                    </div>
+                    <div class="items-center px-4 py-3 space-x-2">
+                        <button id="save-edit-button" type="submit" class="px-4 py-2 bg-green-500 text-white text-base font-medium rounded-md w-auto shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-300">
+                            Simpan Perubahan
+                        </button>
+                        <button id="cancel-edit-button" type="button" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-auto shadow-sm hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                            Batal
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-gray-800 text-white py-2 px-4 rounded-lg shadow-lg opacity-0 transition-opacity duration-300">
+        <p id="toast-message"></p>
+    </div>
+
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            onAuthStateChanged,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            signOut
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, doc, getDoc, setDoc, onSnapshot, collection, addDoc, 
+            updateDoc, deleteDoc, query, serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- CORE APP STATE ---
+        let db, auth;
+        let currentUserId;
+        let settings = { schools: [], uniforms: {}, preOrderCounter: 1 };
+        let orders = [];
+        let unsubscribeSettings;
+        let unsubscribeOrders;
+        let isRegisterMode = false;
+
+        
+        // --- UI ELEMENTS ---
+        const mainLoader = document.getElementById('main-loader');
+        const viewsContainer = document.getElementById('views-container');
+        const headerTitle = document.getElementById('header-title');
+        const authView = document.getElementById('auth-view');
+        const adminView = document.getElementById('admin-view');
+        const authForm = document.getElementById('auth-form');
+        const authError = document.getElementById('auth-error');
+        const userEmailDisplay = document.getElementById('user-email-display');
+
+
+        // --- HELPER FUNCTIONS ---
+        const showToast = (message) => {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            toastMessage.textContent = message;
+            toast.classList.remove('opacity-0');
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+            }, 3000);
+        };
+
+        const formatRupiah = (angka) => {
+            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka || 0);
+        };
+        
+        // --- VIEW MANAGEMENT ---
+        const switchView = (viewId) => {
+            document.querySelectorAll('#views-container > div').forEach(div => div.classList.add('hidden'));
+            document.getElementById(viewId).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('bg-gray-700');
+                if (link.dataset.view === viewId) {
+                    link.classList.add('bg-gray-700');
+                    headerTitle.textContent = link.textContent.trim();
+                }
+            });
+            
+            if (viewId === 'pengaturan-view') {
+                 // Reset and add one size/price row when switching to settings view
+                 const container = document.getElementById('size-price-inputs-container');
+                 if(container) {
+                    container.innerHTML = '';
+                    addSizePriceRow();
+                 }
+            }
+
+            if (document.body.clientWidth < 768) {
+                document.getElementById('sidebar').classList.add('-translate-x-full');
+                document.getElementById('backdrop').classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+            }
+        };
+
+        // --- RENDER FUNCTIONS ---
+        
+        const renderSettings = () => {
+            // Populate school dropdowns
+            const schoolSelects = [document.getElementById('sekolah'), document.getElementById('pengaturan-sekolah-select')];
+            schoolSelects.forEach(select => {
+                if(!select) return;
+                const currentValue = select.value;
+                select.innerHTML = '<option value="">Pilih Sekolah</option>';
+                (settings.schools || []).forEach(school => {
+                    const option = document.createElement('option');
+                    option.value = school.name;
+                    option.textContent = school.name;
+                    select.appendChild(option);
+                });
+                select.value = currentValue;
+            });
+
+            // Populate school list in settings
+            const schoolList = document.getElementById('school-list');
+            if (schoolList) {
+                schoolList.innerHTML = '';
+                if (!settings.schools || settings.schools.length === 0) {
+                    schoolList.innerHTML = `<p class="text-sm text-gray-500">Belum ada sekolah. Cari dan tambahkan di atas.</p>`;
+                } else {
+                    (settings.schools || []).forEach(school => {
+                        const div = document.createElement('div');
+                        div.className = 'flex justify-between items-center bg-gray-100 p-2 rounded';
+                        div.innerHTML = `<span>${school.name}</span> <button data-school-name="${school.name}" class="delete-school-btn text-red-500 hover:text-red-700 text-2xl font-bold">&times;</button>`;
+                        schoolList.appendChild(div);
+                    });
+                }
+            }
+            if (schoolSelects[1]) {
+                 renderUniformSettings(schoolSelects[1].value);
+            }
+        };
+        
+        const renderUniformSettings = (schoolName) => {
+            const uniformContainer = document.getElementById('uniform-list-container');
+            if (!uniformContainer) return;
+            
+            uniformContainer.innerHTML = '';
+            const schoolUniforms = (settings.uniforms && settings.uniforms[schoolName]) || [];
+            if (schoolName && schoolUniforms.length > 0) {
+                schoolUniforms.forEach(uniform => {
+                    const pricesHtml = (uniform.prices || []).map(p => `<li class="flex justify-between items-center text-sm py-1 px-2 rounded hover:bg-gray-200"><span>Ukuran <strong>${p.size}</strong>:</span> <span class="font-medium">${formatRupiah(p.price)}</span></li>`).join('');
+                    const card = document.createElement('div');
+                    card.className = 'bg-gray-50 border rounded-lg p-3';
+                    card.innerHTML = `
+                        <div class="flex justify-between items-center mb-2">
+                            <h5 class="font-semibold text-gray-800">${uniform.name}</h5>
+                            <button data-school-name="${schoolName}" data-uniform-name="${uniform.name}" class="delete-uniform-btn text-red-500 hover:text-red-700">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <ul class="space-y-1">${pricesHtml || '<li class="text-sm text-gray-500">Belum ada harga.</li>'}</ul>`;
+                    uniformContainer.appendChild(card);
+                });
+                lucide.createIcons();
+            } else {
+                uniformContainer.innerHTML = '<p class="text-sm text-gray-500">Belum ada seragam untuk sekolah ini. Silakan tambahkan di bawah.</p>';
+            }
+        };
+
+        const updateUniformOptions = () => {
+            const school = document.getElementById('sekolah').value;
+            const uniformContainer = document.getElementById('jenisSeragamContainer');
+            uniformContainer.innerHTML = '';
+            
+            const schoolUniforms = (settings.uniforms && settings.uniforms[school]) || [];
+            if (school && schoolUniforms.length > 0) {
+                schoolUniforms.forEach(uniform => {
+                    if (!uniform.prices || uniform.prices.length === 0) return;
+        
+                    const label = document.createElement('label');
+                    label.className = 'flex items-center space-x-3 p-2 rounded hover:bg-gray-200 cursor-pointer';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.name = 'jenisSeragam';
+                    checkbox.value = uniform.name;
+                    checkbox.className = 'h-5 w-5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500';
+                    checkbox.addEventListener('change', calculateTotal);
+                    
+                    const prices = uniform.prices.map(p => p.price);
+                    const minPrice = Math.min(...prices);
+                    const maxPrice = Math.max(...prices);
+                    const priceString = minPrice === maxPrice ? formatRupiah(minPrice) : `${formatRupiah(minPrice)} - ${formatRupiah(maxPrice)}`;
+        
+                    const span = document.createElement('span');
+                    span.className = 'text-gray-800';
+                    span.textContent = `${uniform.name} - (${priceString})`;
+        
+                    label.appendChild(checkbox);
+                    label.appendChild(span);
+                    uniformContainer.appendChild(label);
+                });
+            } else {
+                uniformContainer.innerHTML = '<p class="text-gray-500 text-sm">Pilih sekolah terlebih dahulu</p>';
+            }
+            calculateTotal();
+        };
+
+        const calculateTotal = () => {
+            const totalBiayaEl = document.getElementById('total-biaya');
+            const sisaPembayaranContainer = document.getElementById('sisa-pembayaran-container');
+            const sisaPembayaranEl = document.getElementById('sisa-pembayaran');
+            
+            const selectedSchool = document.getElementById('sekolah').value;
+            const selectedSize = document.getElementById('ukuran').value;
+            
+            let totalPrice = 0;
+            let priceFoundForAll = true;
+            
+            const schoolUniforms = (settings.uniforms && settings.uniforms[selectedSchool]) || [];
+            if (selectedSchool && schoolUniforms.length > 0) {
+                document.querySelectorAll('input[name="jenisSeragam"]:checked').forEach(checkbox => {
+                    const uniformName = checkbox.value;
+                    const uniformData = schoolUniforms.find(u => u.name === uniformName);
+                    
+                    if (uniformData && uniformData.prices) {
+                        const sizePrice = uniformData.prices.find(p => p.size === selectedSize);
+                        if (sizePrice) {
+                            totalPrice += sizePrice.price;
+                        } else {
+                            priceFoundForAll = false;
+                        }
+                    }
+                });
+            }
+            
+            if(!priceFoundForAll) {
+                totalBiayaEl.textContent = 'Harga?';
+                showToast(`Harga ukuran ${selectedSize} tidak ada di salah satu seragam.`);
+            } else {
+                totalBiayaEl.textContent = formatRupiah(totalPrice);
+            }
+        
+            const isDP = document.querySelector('input[name="statusPembayaran"]:checked').value === 'DP';
+            if (isDP) {
+                const dpAmount = parseInt(document.getElementById('dp').value, 10) || 0;
+                const sisa = totalPrice - dpAmount;
+                sisaPembayaranEl.textContent = formatRupiah(sisa > 0 ? sisa : 0);
+                sisaPembayaranContainer.classList.remove('hidden');
+            } else {
+                 sisaPembayaranContainer.classList.add('hidden');
+            }
+        };
+
+        const renderOrdersTable = (filteredOrders) => {
+            const tableBody = document.getElementById('orders-table');
+            const noDataMsg = document.getElementById('no-data-message');
+            tableBody.innerHTML = '';
+            
+            const dataToRender = filteredOrders || orders;
+
+            if (dataToRender.length === 0) {
+                noDataMsg.classList.remove('hidden');
+                return;
+            }
+            noDataMsg.classList.add('hidden');
+
+            dataToRender.forEach(order => {
+                const sisa = order.totalHarga - order.dp;
+                const itemsHtml = order.items && Array.isArray(order.items)
+                    ? `<ul class="list-disc list-inside">${order.items.map(item => `<li>${item.name}</li>`).join('')}</ul>`
+                    : order.jenisSeragam; 
+                
+                const tanggalPesan = order.tanggalPemesanan?.seconds ? new Date(order.tanggalPemesanan.seconds * 1000).toLocaleDateString('id-ID') : 'N/A';
+
+                const tr = document.createElement('tr');
+                tr.className = order.statusProduksi === 'Selesai' ? 'bg-green-50' : '';
+                tr.innerHTML = `
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${order.nama || 'Tanpa Nama'}</div>
+                        <div class="text-sm text-gray-500">${tanggalPesan}</div>
+                        <div class="text-xs text-gray-400">PO #${order.preOrderBatch || 'N/A'}</div>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${itemsHtml}</div>
+                        <div class="text-sm text-gray-500">Ukuran: <strong>${order.ukuran}</strong></div>
+                        <div class="text-sm text-gray-500">${order.sekolah} | ${order.jenisKelamin}</div>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">Total: ${formatRupiah(order.totalHarga)}</div>
+                        <div class="text-sm ${order.statusPembayaran === 'Lunas' ? 'text-green-600' : 'text-yellow-600'}">${order.statusPembayaran === 'Lunas' ? 'Lunas' : `DP: ${formatRupiah(order.dp)}`}</div>
+                        ${order.statusPembayaran === 'DP' && sisa > 0 ? `<div class="text-sm text-red-600">Sisa: ${formatRupiah(sisa)}</div>` : ''}
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${order.statusProduksi === 'Selesai' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                            ${order.statusProduksi}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">
+                        <button data-id="${order.id}" class="edit-btn text-indigo-600 hover:text-indigo-900">Edit</button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        };
+        
+        const renderRekap = () => {
+            const content = document.getElementById('rekap-content');
+            if (orders.length === 0) {
+                content.innerHTML = '<p class="text-gray-500">Belum ada pesanan untuk direkap.</p>';
+                return;
+            }
+
+            const rekap = getRekapData();
+            
+            let html = '';
+            for (const sekolah in rekap) {
+                let totalPesananSekolah = 0;
+                let seragamHtml = '';
+                
+                for(const seragam in rekap[sekolah]){
+                    totalPesananSekolah += rekap[sekolah][seragam].total;
+                    seragamHtml += `<div class="pl-4">
+                                <h4 class="font-semibold">${seragam} <span class="font-normal text-gray-500">(${rekap[sekolah][seragam].total} Pcs)</span></h4>
+                                <table class="min-w-full divide-y divide-gray-200 mt-2">
+                                    <thead class="bg-gray-50 text-xs"><tr class="text-center"><th class="px-1 py-1">Ukuran</th><th class="px-1 py-1">Laki-laki</th><th class="px-1 py-1">Perempuan</th><th class="px-1 py-1">Total</th></tr></thead>
+                                    <tbody class="text-sm text-center">`;
+                    
+                    const sortedSizes = Object.keys(rekap[sekolah][seragam]).filter(k => k !== 'total').sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+
+                    for(const ukuran of sortedSizes){
+                        const data = rekap[sekolah][seragam][ukuran];
+                        seragamHtml += `<tr><td>${ukuran}</td><td>${data['Laki-laki']}</td><td>${data['Perempuan']}</td><td>${data.total}</td></tr>`;
+                    }
+                    seragamHtml += `</tbody></table></div>`;
+                }
+
+                html += `<div class="p-4 border rounded-lg">
+                            <h3 class="text-xl font-semibold">${sekolah} <span class="text-base font-normal text-gray-600">(${totalPesananSekolah} Total Pcs)</span></h3>
+                            <div class="mt-4 space-y-3">${seragamHtml}</div>
+                        </div>`;
+            }
+            content.innerHTML = html;
+        };
+        
+        const addSizePriceRow = () => {
+            const container = document.getElementById('size-price-inputs-container');
+            if(!container) return;
+            const div = document.createElement('div');
+            div.className = 'flex items-center space-x-2 size-price-row';
+            div.innerHTML = `
+                <input type="text" placeholder="Ukuran (e.g. S)" class="w-1/2 px-3 py-2 border border-gray-300 rounded-md text-sm" required>
+                <input type="number" placeholder="Harga (Rp)" class="w-1/2 px-3 py-2 border border-gray-300 rounded-md text-sm" required>
+                <button type="button" class="remove-size-price-row text-red-500 hover:text-red-700">
+                    <i data-lucide="minus-circle" class="w-5 h-5"></i>
+                </button>
+            `;
+            container.appendChild(div);
+            lucide.createIcons();
+        };
+
+        // --- GEMINI API FUNCTIONS ---
+
+        async function callGeminiAPI(prompt, jsonSchema = null) {
+            const apiKey = ""; // Provided by the environment
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+            };
+
+            if (jsonSchema) {
+                payload.generationConfig = {
+                    responseMimeType: "application/json",
+                    responseSchema: jsonSchema,
+                };
+            }
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorBody = await response.json();
+                    throw new Error(`API request failed: ${errorBody.error.message}`);
+                }
+
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+                if (candidate?.content?.parts?.[0]?.text) {
+                    return candidate.content.parts[0].text;
+                } else {
+                    throw new Error("Invalid response structure from Gemini API.");
+                }
+            } catch (error) {
+                console.error("Error calling Gemini API:", error);
+                throw error;
+            }
+        }
+
+        function getRekapData() {
+             const rekap = {};
+            orders.forEach(order => {
+                (order.items || []).forEach(item => {
+                    if (!item || !item.name) return;
+                    if (!rekap[order.sekolah]) rekap[order.sekolah] = {};
+                    if (!rekap[order.sekolah][item.name]) rekap[order.sekolah][item.name] = { total: 0 };
+                    if (!rekap[order.sekolah][item.name][order.ukuran]) {
+                        rekap[order.sekolah][item.name][order.ukuran] = { 'Laki-laki': 0, 'Perempuan': 0, total: 0 };
+                    }
+                    rekap[order.sekolah][item.name].total++;
+                    rekap[order.sekolah][item.name][order.ukuran][order.jenisKelamin]++;
+                    rekap[order.sekolah][item.name][order.ukuran].total++;
+                });
+            });
+            return rekap;
+        }
+        
+        function getRekapDataAsString() {
+            const rekapData = getRekapData();
+            if (Object.keys(rekapData).length === 0) return "";
+
+            let rekapString = "Berikut adalah data rekapitulasi pesanan:\n";
+            for (const sekolah in rekapData) {
+                rekapString += `\nUntuk ${sekolah}:\n`;
+                for (const seragam in rekapData[sekolah]) {
+                    rekapString += `- ${seragam} (Total: ${rekapData[sekolah][seragam].total} pcs):\n`;
+                    for (const ukuran in rekapData[sekolah][seragam]) {
+                        if (ukuran === 'total') continue;
+                        const details = rekapData[sekolah][seragam][ukuran];
+                        rekapString += `  - Ukuran ${ukuran}: ${details.total} pcs (${details['Laki-laki']} L, ${details['Perempuan']} P)\n`;
+                    }
+                }
+            }
+            return rekapString;
+        }
+
+        function formatGeminiResponse(text) {
+            let html = '';
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+            let inList = false;
+            for (const line of lines) {
+                if (line.trim().startsWith('* ')) {
+                    if (!inList) {
+                        html += '<ul class="list-disc list-inside space-y-2">';
+                        inList = true;
+                    }
+                    html += `<li class="text-gray-700">${line.trim().substring(2).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</li>`;
+                } else {
+                    if (inList) {
+                        html += '</ul>';
+                        inList = false;
+                    }
+                    html += `<p class="mt-4 text-gray-800 font-semibold">${line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</p>`;
+                }
+            }
+            if (inList) html += '</ul>';
+            return html;
+        }
+
+
+        // --- FIRESTORE LOGIC ---
+        
+        async function initFirestore() {
+            try {
+                const firebaseConfigObj = JSON.parse(__firebase_config);
+                const app = initializeApp(firebaseConfigObj);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                onAuthStateChanged(auth, user => {
+                    if (user) {
+                        currentUserId = user.uid;
+                        userEmailDisplay.textContent = user.email;
+                        authView.classList.add('hidden');
+                        adminView.classList.remove('hidden');
+                        mainLoader.classList.remove('hidden');
+                        viewsContainer.classList.add('hidden');
+                        setupListeners();
+                    } else {
+                        currentUserId = null;
+                        if(unsubscribeSettings) unsubscribeSettings();
+                        if(unsubscribeOrders) unsubscribeOrders();
+                        adminView.classList.add('hidden');
+                        authView.classList.remove('hidden');
+                        mainLoader.classList.add('hidden');
+                    }
+                });
+
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                mainLoader.innerHTML = '<p class="text-red-500">Gagal terhubung. Coba muat ulang.</p>';
+            }
+        }
+        
+        async function setupListeners() {
+            if (!currentUserId) return;
+            if(unsubscribeSettings) unsubscribeSettings();
+            const settingsDocRef = doc(db, `artifacts/${__app_id}/users/${currentUserId}/config`, "settings");
+            unsubscribeSettings = onSnapshot(settingsDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    settings = docSnap.data();
+                } else {
+                    const defaultSettings = {
+                        schools: [ { name: 'Sekolah Contoh'}],
+                        uniforms: { 'Sekolah Contoh': [ { name: 'Seragam Harian', prices: [{size: 'S', price: 85000}] } ] },
+                        preOrderCounter: 1
+                    };
+                    setDoc(settingsDocRef, defaultSettings).catch(e => console.error("Failed to set default settings:", e));
+                    settings = defaultSettings;
+                }
+                renderSettings();
+                updateUniformOptions();
+            }, (error) => console.error("Error listening to settings:", error));
+
+            if (unsubscribeOrders) unsubscribeOrders();
+            const ordersCollectionRef = collection(db, `artifacts/${__app_id}/users/${currentUserId}/orders`);
+            unsubscribeOrders = onSnapshot(query(ordersCollectionRef), (querySnapshot) => {
+                orders = [];
+                querySnapshot.forEach((doc) => orders.push({ id: doc.id, ...doc.data() }));
+                orders.sort((a,b) => (b.tanggalPemesanan?.seconds || 0) - (a.tanggalPemesanan?.seconds || 0));
+                renderOrdersTable();
+                renderRekap();
+                mainLoader.classList.add('hidden');
+                viewsContainer.classList.remove('hidden');
+            }, (error) => console.error("Error listening to orders:", error));
+        }
+        
+        async function saveSettings(newSettings) {
+            if (!currentUserId) return;
+            const settingsDocRef = doc(db, `artifacts/${__app_id}/users/${currentUserId}/config`, "settings");
+            await setDoc(settingsDocRef, newSettings, { merge: true });
+            showToast("Pengaturan berhasil disimpan.");
+        }
+
+
+        // --- EVENT LISTENERS ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initFirestore(); 
+
+            // --- Auth Form Logic ---
+            const authSubtitle = document.getElementById('auth-subtitle');
+            const authButton = document.getElementById('auth-button');
+            const authToggle = document.getElementById('auth-toggle');
+
+            authToggle.addEventListener('click', (e) => {
+                e.preventDefault();
+                isRegisterMode = !isRegisterMode;
+                authSubtitle.textContent = isRegisterMode ? 'Daftar akun baru' : 'Masuk untuk mengelola pesanan Anda';
+                authButton.textContent = isRegisterMode ? 'Daftar' : 'Masuk';
+                authToggle.textContent = isRegisterMode ? 'Sudah punya akun? Masuk' : 'Belum punya akun? Daftar di sini';
+                authError.classList.add('hidden');
+                authForm.reset();
+            });
+            
+            authForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = authForm.email.value;
+                const password = authForm.password.value;
+                authError.classList.add('hidden');
+                
+                try {
+                    if (isRegisterMode) {
+                        await createUserWithEmailAndPassword(auth, email, password);
+                    } else {
+                        await signInWithEmailAndPassword(auth, email, password);
+                    }
+                } catch (error) {
+                    authError.textContent = error.message;
+                    authError.classList.remove('hidden');
+                }
+            });
+            
+            document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+
+
+            // --- Mobile Menu ---
+            const menuBtn = document.getElementById('menu-btn');
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('backdrop');
+            const toggleMenu = () => {
+                sidebar.classList.toggle('-translate-x-full');
+                backdrop.classList.toggle('hidden');
+                document.body.classList.toggle('overflow-hidden', !backdrop.classList.contains('hidden'));
+            };
+            menuBtn.addEventListener('click', toggleMenu);
+            backdrop.addEventListener('click', toggleMenu);
+            
+            // --- Navigation ---
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    switchView(e.currentTarget.dataset.view);
+                });
+            });
+
+            // --- Order Form Logic ---
+            const orderForm = document.getElementById('order-form');
+            orderForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!currentUserId) {
+                    showToast('Anda harus masuk untuk menyimpan pesanan.');
+                    return;
+                }
+                const selectedSeragam = document.querySelectorAll('input[name="jenisSeragam"]:checked');
+                if (selectedSeragam.length === 0) {
+                    showToast('Harap pilih minimal satu jenis seragam.');
+                    return;
+                }
+                const submitButton = document.getElementById('submit-button');
+                submitButton.disabled = true;
+                submitButton.textContent = 'Menyimpan...';
+
+                const formData = new FormData(orderForm);
+                const selectedSchool = formData.get('sekolah');
+                const selectedSize = formData.get('ukuran');
+                const items = [];
+                let totalHarga = 0;
+                let priceFetchError = false;
+
+                selectedSeragam.forEach(cb => {
+                    const uniformName = cb.value;
+                    const uniformData = settings.uniforms[selectedSchool]?.find(u => u.name === uniformName);
+                    const sizePriceData = uniformData?.prices.find(p => p.size === selectedSize);
+                    
+                    if (sizePriceData) {
+                        items.push({ name: uniformName, price: sizePriceData.price, size: selectedSize });
+                        totalHarga += sizePriceData.price;
+                    } else {
+                        priceFetchError = true;
+                    }
+                });
+
+                if (priceFetchError) {
+                    showToast('Gagal: Harga tidak ada untuk ukuran/seragam pilihan.');
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Simpan Pesanan';
+                    return;
+                }
+
+                const newOrder = {
+                    nama: formData.get('nama'),
+                    sekolah: selectedSchool,
+                    jenisKelamin: formData.get('jenisKelamin'),
+                    ukuran: selectedSize,
+                    statusPembayaran: formData.get('statusPembayaran'),
+                    dp: formData.get('statusPembayaran') === 'DP' ? parseInt(formData.get('dp') || 0) : totalHarga,
+                    totalHarga: totalHarga,
+                    items: items,
+                    statusProduksi: 'Belum Selesai',
+                    tanggalPemesanan: serverTimestamp(),
+                    preOrderBatch: settings.preOrderCounter || 1
+                };
+                if (newOrder.statusPembayaran === 'Lunas') newOrder.dp = totalHarga;
+
+                try {
+                    const ordersCollectionRef = collection(db, `artifacts/${__app_id}/users/${currentUserId}/orders`);
+                    await addDoc(ordersCollectionRef, newOrder);
+                    const settingsDocRef = doc(db, `artifacts/${__app_id}/users/${currentUserId}/config`, "settings");
+                    await updateDoc(settingsDocRef, { preOrderCounter: (settings.preOrderCounter || 1) + 1 });
+                    showToast('Pesanan berhasil disimpan!');
+                    orderForm.reset();
+                    updateUniformOptions();
+                } catch (error) {
+                    showToast('Gagal menyimpan pesanan.');
+                } finally {
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'Simpan Pesanan';
+                }
+            });
+            
+            document.getElementById('sekolah').addEventListener('change', updateUniformOptions);
+            document.getElementById('ukuran').addEventListener('change', calculateTotal);
+            document.querySelectorAll('input[name="statusPembayaran"]').forEach(radio => radio.addEventListener('change', (e) => {
+                document.getElementById('dp-field').classList.toggle('hidden', e.target.value !== 'DP');
+                calculateTotal();
+            }));
+            document.getElementById('dp').addEventListener('input', calculateTotal);
+            
+            // --- Data View Logic ---
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                renderOrdersTable(orders.filter(order => order.nama?.toLowerCase().includes(searchTerm)));
+            });
+            
+            const editModal = document.getElementById('edit-modal');
+            document.getElementById('orders-table').addEventListener('click', (e) => {
+                if (e.target.classList.contains('edit-btn')) {
+                    const order = orders.find(o => o.id === e.target.dataset.id);
+                    if (order) {
+                        document.getElementById('edit-order-id').value = order.id;
+                        document.getElementById('edit-status-produksi').value = order.statusProduksi;
+                        document.getElementById('edit-tambah-dp').value = '';
+                        document.getElementById('current-dp-info').textContent = formatRupiah(order.dp);
+                        document.getElementById('current-sisa-info').textContent = formatRupiah(order.totalHarga - order.dp);
+                        editModal.classList.remove('hidden');
+                    }
+                }
+            });
+
+            document.getElementById('cancel-edit-button').addEventListener('click', () => editModal.classList.add('hidden'));
+            
+            document.getElementById('edit-order-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const orderId = document.getElementById('edit-order-id').value;
+                const originalOrder = orders.find(o => o.id === orderId);
+                if (!originalOrder || !currentUserId) return;
+                
+                const tambahDp = parseInt(document.getElementById('edit-tambah-dp').value, 10) || 0;
+                const newDp = originalOrder.dp + tambahDp;
+                
+                const updatedData = {
+                    statusProduksi: document.getElementById('edit-status-produksi').value,
+                    dp: newDp,
+                    statusPembayaran: newDp >= originalOrder.totalHarga ? 'Lunas' : 'DP',
+                };
+                if(updatedData.statusPembayaran === 'Lunas') updatedData.dp = originalOrder.totalHarga;
+                
+                try {
+                    const orderDocRef = doc(db, `artifacts/${__app_id}/users/${currentUserId}/orders`, orderId);
+                    await updateDoc(orderDocRef, updatedData);
+                    showToast('Data berhasil diperbarui!');
+                    editModal.classList.add('hidden');
+                } catch (error) {
+                    showToast('Gagal memperbarui data.');
+                }
+            });
+
+            // --- Settings View Logic ---
+            document.getElementById('find-school-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const query = document.getElementById('school-search-query').value.trim();
+                if(!query) return;
+
+                const suggestionsContainer = document.getElementById('school-suggestions-container');
+                suggestionsContainer.innerHTML = `<div class="flex items-center text-sm text-gray-500"><div class="loader !w-5 !h-5 !border-2 mr-2"></div> Mencari...</div>`;
+
+                const prompt = `Berikan daftar nama sekolah di wilayah "${query}". Batasi hingga 7 nama. Berikan respons dalam format JSON dengan satu kunci "schools" yang berisi array string nama sekolah.`;
+                const schema = {
+                    type: "OBJECT",
+                    properties: { "schools": { type: "ARRAY", items: { type: "STRING" } } }
+                };
+
+                try {
+                    const responseText = await callGeminiAPI(prompt, schema);
+                    const result = JSON.parse(responseText);
+                    
+                    if (result.schools && result.schools.length > 0) {
+                        suggestionsContainer.innerHTML = `<p class="text-sm font-medium mb-2">Pilih untuk menambahkan:</p><div class="flex flex-wrap gap-2">`;
+                        result.schools.forEach(schoolName => {
+                             suggestionsContainer.querySelector('div').innerHTML += `<button data-school-name="${schoolName}" class="add-suggested-school-btn text-xs bg-indigo-100 text-indigo-700 py-1 px-2 rounded-full hover:bg-indigo-200">${schoolName}</button>`;
+                        });
+                        suggestionsContainer.innerHTML += `</div>`;
+                    } else {
+                        suggestionsContainer.innerHTML = `<p class="text-sm text-gray-500">Tidak ada sekolah yang ditemukan untuk "${query}".</p>`;
+                    }
+                } catch(error) {
+                    suggestionsContainer.innerHTML = `<p class="text-sm text-red-500">Gagal mencari sekolah. Coba lagi.</p>`;
+                }
+            });
+
+            document.getElementById('school-suggestions-container').addEventListener('click', (e) => {
+                if(e.target.classList.contains('add-suggested-school-btn')) {
+                    const newSchoolName = e.target.dataset.schoolName;
+                    const currentSchools = settings.schools || [];
+                    if (newSchoolName && !currentSchools.some(s => s.name === newSchoolName)) {
+                        const newSettings = { ...settings, schools: [...currentSchools, { name: newSchoolName }] };
+                        saveSettings(newSettings);
+                        showToast(`${newSchoolName} berhasil ditambahkan.`);
+                        e.target.remove();
+                    } else {
+                        showToast(`${newSchoolName} sudah ada di daftar Anda.`);
+                         e.target.remove();
+                    }
+                }
+            });
+
+            document.getElementById('school-list').addEventListener('click', async (e) => {
+                const schoolNameToDelete = e.target.closest('.delete-school-btn')?.dataset.schoolName;
+                if (schoolNameToDelete) {
+                    const newSettings = { ...settings };
+                    newSettings.schools = (newSettings.schools || []).filter(s => s.name !== schoolNameToDelete);
+                    if (newSettings.uniforms) delete newSettings.uniforms[schoolNameToDelete];
+                    await saveSettings(newSettings);
+                }
+            });
+            
+            document.getElementById('pengaturan-sekolah-select').addEventListener('change', (e) => renderUniformSettings(e.target.value));
+            
+            document.getElementById('add-size-price-row').addEventListener('click', addSizePriceRow);
+            document.getElementById('size-price-inputs-container').addEventListener('click', e => {
+                e.target.closest('.remove-size-price-row')?.closest('.size-price-row').remove();
+            });
+
+            document.getElementById('add-uniform-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const school = document.getElementById('pengaturan-sekolah-select').value;
+                const uniformName = document.getElementById('new-uniform-name').value.trim();
+                const prices = [];
+                document.querySelectorAll('#size-price-inputs-container .size-price-row').forEach(row => {
+                    const sizeInput = row.querySelector('input[type="text"]');
+                    const priceInput = row.querySelector('input[type="number"]');
+                    if (sizeInput.value && priceInput.value) {
+                        prices.push({ size: sizeInput.value.trim().toUpperCase(), price: parseInt(priceInput.value, 10) });
+                    }
+                });
+
+                if(school && uniformName && prices.length > 0){
+                    const newSettings = { ...settings };
+                    if(!newSettings.uniforms) newSettings.uniforms = {};
+                    if(!newSettings.uniforms[school]) newSettings.uniforms[school] = [];
+
+                    if(!newSettings.uniforms[school].some(u => u.name === uniformName)){
+                        newSettings.uniforms[school].push({ name: uniformName, prices: prices });
+                        await saveSettings(newSettings);
+                        document.getElementById('new-uniform-name').value = '';
+                        document.getElementById('size-price-inputs-container').innerHTML = '';
+                        addSizePriceRow();
+                    } else {
+                        showToast('Nama seragam sudah ada untuk sekolah ini.');
+                    }
+                } else {
+                     showToast('Harap isi nama sekolah, seragam, dan minimal satu harga.');
+                }
+            });
+            
+            document.getElementById('uniform-list-container').addEventListener('click', async (e) => {
+                const deleteButton = e.target.closest('.delete-uniform-btn');
+                if (deleteButton) {
+                    const { schoolName, uniformName } = deleteButton.dataset;
+                    const newSettings = { ...settings };
+                    if(newSettings.uniforms?.[schoolName]){
+                       newSettings.uniforms[schoolName] = newSettings.uniforms[schoolName].filter(u => u.name !== uniformName);
+                       await saveSettings(newSettings);
+                    }
+                }
+            });
+
+            // --- Gemini Rekap Analysis ---
+            document.getElementById('analyze-rekap-btn').addEventListener('click', async () => {
+                const rekapString = getRekapDataAsString();
+                if (!rekapString) {
+                    showToast("Tidak ada data rekap untuk dianalisis.");
+                    return;
+                }
+
+                const geminiLoader = document.getElementById('gemini-loader');
+                const geminiResult = document.getElementById('gemini-analysis-result');
+                geminiLoader.style.display = 'flex';
+                geminiResult.innerHTML = '';
+                
+                const prompt = `Anda adalah seorang analis bisnis untuk usaha konveksi seragam sekolah. Berdasarkan data rekapitulasi pesanan berikut:\n${rekapString}\n\nBerikan analisis singkat dan 3 saran praktis dalam format poin-poin. Fokus pada:\n1. Produk (seragam/ukuran) mana yang paling laris dan perlu prioritas stok.\n2. Tren atau pola yang menarik dari data.\n3. Saran strategi bisnis atau promosi yang bisa dilakukan.`;
+
+                try {
+                    const responseText = await callGeminiAPI(prompt);
+                    geminiResult.innerHTML = formatGeminiResponse(responseText);
+                } catch (error) {
+                    geminiResult.innerHTML = `<p class="text-red-500 text-center">Gagal mendapatkan analisis dari Gemini. Coba lagi nanti.</p>`;
+                } finally {
+                    geminiLoader.style.display = 'none';
+                }
+            });
+
+        });
+    </script>
+</body>
+</html>
+
